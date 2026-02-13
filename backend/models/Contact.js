@@ -1,48 +1,30 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const contactSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Name is required'],
-    trim: true,
+    required: true,
+    trim: true
   },
   phone: {
     type: String,
-    required: [true, 'Phone is required'],
-    trim: true,
-  },
-  email: {
-    type: String,
-    trim: true,
-    lowercase: true,
+    required: true,
+    trim: true
   },
   message: {
     type: String,
-    required: [true, 'Message is required'],
+    required: true,
+    trim: true
   },
   type: {
     type: String,
     enum: ['contact', 'catering'],
-    default: 'contact',
+    default: 'contact'
   },
-  status: {
-    type: String,
-    enum: ['new', 'read', 'replied', 'closed'],
-    default: 'new',
-  },
-  // For catering enquiries
-  eventDate: Date,
-  guestCount: Number,
-  eventType: String,
-  requirements: String,
-}, {
-  timestamps: true,
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-// Index for queries
-contactSchema.index({ status: 1, createdAt: -1 });
-contactSchema.index({ type: 1 });
-
-const Contact = mongoose.model('Contact', contactSchema);
-
-export default Contact;
+module.exports = mongoose.model('Contact', contactSchema);

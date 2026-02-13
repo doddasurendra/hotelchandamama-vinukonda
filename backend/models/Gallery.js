@@ -1,49 +1,22 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const gallerySchema = new mongoose.Schema({
+  imageUrl: {
+    type: String,
+    required: true
+  },
+  publicId: {
+    type: String,
+    required: true
+  },
   title: {
     type: String,
-    required: [true, 'Title is required'],
-    trim: true,
+    default: ''
   },
-  description: {
-    type: String,
-    default: '',
-  },
-  image: {
-    url: {
-      type: String,
-      required: true,
-    },
-    publicId: {
-      type: String,
-      required: true,
-    },
-  },
-  category: {
-    type: String,
-    enum: ['interior', 'exterior', 'food', 'events', 'staff', 'other'],
-    default: 'other',
-  },
-  displayOrder: {
-    type: Number,
-    default: 0,
-  },
-  isActive: {
-    type: Boolean,
-    default: true,
-  },
-  uploadedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  },
-}, {
-  timestamps: true,
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-// Index for sorting
-gallerySchema.index({ displayOrder: 1, createdAt: -1 });
-
-const Gallery = mongoose.model('Gallery', gallerySchema);
-
-export default Gallery;
+module.exports = mongoose.model('Gallery', gallerySchema);

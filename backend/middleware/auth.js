@@ -1,91 +1,64 @@
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-// Verify JWT token
-export const protect = async (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
-    let token;
-
-    // Check for token in headers
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
+    // Get token from header
+    const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized. Please login.',
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No authentication token, access denied' 
       });
     }
 
-    try {
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Find user
+    const user = await User.findById(decoded.userId);
 
-      // Get user from token
-      req.user = await User.findById(decoded.id).select('-password');
-
-      if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          message: 'User not found',
-        });
-      }
-
-      if (!req.user.isActive) {
-        return res.status(401).json({
-          success: false,
-          message: 'Account is deactivated',
-        });
-      }
-
-      next();
-    } catch (error) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid or expired token',
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'User not found' 
       });
     }
+
+    // Check if user is admin
+    if (user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Access denied. Admin only.' 
+      });
+    }
+
+    // Add user to request
+    req.user = user;
+    next();
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Authentication error',
-      error: error.message,
+    console.error('Auth middleware error:', error);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token' 
+      });
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Token expired' 
+      });
+    }
+
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during authentication' 
     });
   }
 };
 
-// Check if user is admin
-export const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({
-      success: false,
-      message: 'Access denied. Admin only.',
-    });
-  }
-};
-
-// Optional auth - sets user if token exists but doesn't require it
-export const optionalAuth = async (req, res, next) => {
-  try {
-    let token;
-
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-      
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = await User.findById(decoded.id).select('-password');
-      } catch (error) {
-        // Token invalid but continue anyway
-        req.user = null;
-      }
-    }
-
-    next();
-  } catch (error) {
-    next();
-  }
-};
+module.exports = authMiddleware;
