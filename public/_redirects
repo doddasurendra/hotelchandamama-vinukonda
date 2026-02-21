@@ -1,0 +1,4 @@
+/*  Redirect all routes to index.html for React SPA routing  */
+/*  This makes /menu, /order, /admin etc. all work correctly  */
+/admin/*  /index.html  200
+/*         /index.html  200
