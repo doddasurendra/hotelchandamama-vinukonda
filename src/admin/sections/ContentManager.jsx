@@ -6,7 +6,9 @@ export default function ContentManager() {
     const [form, setForm] = useState({});
     const [saved, setSaved] = useState(false);
 
-    useEffect(() => { setForm(getSingle(TABLES.SITE_CONTENT) || {}); }, []);
+    useEffect(() => {
+        setForm(getSingle(TABLES.SITE_CONTENT) || {});
+    }, []);
 
     const handleSave = () => {
         setOne(TABLES.SITE_CONTENT, form);
@@ -32,6 +34,7 @@ export default function ContentManager() {
                     <Save size={14} /> {saved ? '✅ Saved!' : 'Save Changes'}
                 </button>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {f('hotelName', 'Hotel Chandamama')}
                 {f('tagline', 'SPOONS • SELF SERVICE • TAKE AWAY')}

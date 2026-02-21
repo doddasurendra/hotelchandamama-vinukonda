@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Phone, UtensilsCrossed, Lock } from 'lucide-react';
-import { getSingle, TABLES } from '../db/database';
+import { TABLES } from '../db/database';
+import { useRecord } from '../db/hooks';
 
 export default function Header() {
     const [open, setOpen] = useState(false);
     const location = useLocation();
-    const content = getSingle(TABLES.SITE_CONTENT) || {};
+    const content = useRecord(TABLES.SITE_CONTENT) || {};
     const logoUrl = content.logoUrl || '';
 
     const navLinks = [

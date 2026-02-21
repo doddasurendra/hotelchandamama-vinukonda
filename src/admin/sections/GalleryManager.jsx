@@ -5,6 +5,8 @@ import { getAll, insert, remove, getSingle, setOne, TABLES } from '../../db/data
 export default function GalleryManager() {
     const [gallery, setGallery] = useState([]);
     const [siteContent, setSiteContent] = useState({});
+    const [uploading, setUploading] = useState(false);
+    const [uploadMsg, setUploadMsg] = useState('');
     const fileRef = useRef();
 
     const load = () => {
@@ -15,11 +17,22 @@ export default function GalleryManager() {
 
     const handleUpload = (e) => {
         const files = Array.from(e.target.files);
+        if (!files.length) return;
+        setUploading(true);
+        setUploadMsg(`Uploading 0/${files.length}...`);
+        let done = 0;
         files.forEach(file => {
             const reader = new FileReader();
             reader.onload = ev => {
                 insert(TABLES.GALLERY, { url: ev.target.result, title: file.name.replace(/\.[^/.]+$/, ''), type: 'gallery' });
-                load();
+                done++;
+                setUploadMsg(`Uploading ${done}/${files.length}...`);
+                if (done === files.length) {
+                    load();
+                    setUploading(false);
+                    setUploadMsg(`✓ ${done} photo(s) added`);
+                    setTimeout(() => setUploadMsg(''), 3000);
+                }
             };
             reader.readAsDataURL(file);
         });
@@ -29,14 +42,14 @@ export default function GalleryManager() {
         const c = getSingle(TABLES.SITE_CONTENT) || {};
         setOne(TABLES.SITE_CONTENT, { ...c, logoUrl: url });
         setSiteContent(prev => ({ ...prev, logoUrl: url }));
-        alert('Logo updated! Reload the page to see it.');
+        alert('Logo updated!');
     };
 
     const setAsHero = (url) => {
         const c = getSingle(TABLES.SITE_CONTENT) || {};
         setOne(TABLES.SITE_CONTENT, { ...c, heroUrl: url });
         setSiteContent(prev => ({ ...prev, heroUrl: url }));
-        alert('Hero background updated! Reload the page to see it.');
+        alert('Hero background updated!');
     };
 
     const del = (id) => {
@@ -54,10 +67,20 @@ export default function GalleryManager() {
                     <h1 className="text-2xl font-bold" style={{ color: '#00bbc4' }}>Gallery Manager</h1>
                     <p className="text-sm opacity-60">{gallery.length} photos</p>
                 </div>
-                <button onClick={() => fileRef.current.click()} className="btn-primary flex items-center gap-2">
-                    <Upload size={16} /> Upload Photos
-                </button>
-                <input type="file" accept="image/*" multiple ref={fileRef} onChange={handleUpload} className="hidden" />
+                <div className="flex gap-2 items-center">
+                    {uploadMsg && (
+                        <span className="text-xs" style={{ color: uploadMsg.startsWith('✓') ? '#00c851' : '#00bbc4' }}>{uploadMsg}</span>
+                    )}
+                    <button onClick={() => fileRef.current.click()} disabled={uploading} className="btn-primary flex items-center gap-2">
+                        <Upload size={16} /> {uploading ? 'Uploading...' : 'Upload Photos'}
+                    </button>
+                    <input type="file" accept="image/*" multiple ref={fileRef} onChange={handleUpload} className="hidden" />
+                </div>
+            </div>
+
+            {/* Sync tip */}
+            <div className="mb-4 text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(0,187,196,0.08)', color: '#00bbc4', border: '1px solid rgba(0,187,196,0.2)' }}>
+                💡 After uploading photos, click <strong>"☁ Push to Cloud (Sync Mobile)"</strong> in the top bar to sync to all devices.
             </div>
 
             {/* Current branding preview */}
@@ -78,51 +101,38 @@ export default function GalleryManager() {
                     </div>
                     {siteContent.heroUrl && (
                         <button
-                            onClick={() => { setOne(TABLES.SITE_CONTENT, { ...getSingle(TABLES.SITE_CONTENT), heroUrl: '' }); setSiteContent(p => ({ ...p, heroUrl: '' })); alert('Hero background cleared!'); }}
-                            className="text-xs px-3 py-1.5 rounded-lg font-medium text-red-400 mb-0"
+                            onClick={() => { setOne(TABLES.SITE_CONTENT, { ...getSingle(TABLES.SITE_CONTENT), heroUrl: '' }); setSiteContent(p => ({ ...p, heroUrl: '' })); }}
+                            className="text-xs px-3 py-1.5 rounded-lg font-medium text-red-400"
                             style={{ background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.3)' }}>
                             🗑️ Clear Hero
                         </button>
                     )}
                 </div>
                 <p className="text-xs opacity-40 mt-3">
-                    Hover over any photo below → click <strong>Set as Logo</strong> or <strong>Set as Hero Background</strong>
+                    Hover over any photo → click <strong>Set as Logo</strong> or <strong>Set as Hero Background</strong>
                 </p>
             </div>
 
-            {/* ========== GALLERY GRID ========== */}
+            {/* Gallery Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {gallery.map(photo => (
                     <div key={photo.id} className="relative group aspect-square rounded-xl overflow-hidden"
                         style={{ background: 'rgba(0,50,54,0.5)', border: '1px solid rgba(0,187,196,0.15)' }}>
-
-                        {/* Photo */}
                         <img src={photo.url} alt={photo.title} className="w-full h-full object-cover" />
-
-                        {/* ✅ ALWAYS-VISIBLE RED DELETE BUTTON — top-right corner */}
-                        <button
-                            onClick={() => del(photo.id)}
-                            title="Delete photo"
-                            className="absolute top-2 right-2 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110 active:scale-95"
-                            style={{
-                                background: 'rgba(220, 38, 38, 0.9)',
-                                border: '2px solid rgba(255,255,255,0.5)',
-                            }}>
+                        <button onClick={() => del(photo.id)} title="Delete"
+                            className="absolute top-2 right-2 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110"
+                            style={{ background: 'rgba(220,38,38,0.9)', border: '2px solid rgba(255,255,255,0.5)' }}>
                             <Trash2 size={15} className="text-white" />
                         </button>
-
-                        {/* Hover overlay (Set Logo / Set Hero) */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end gap-1 p-2"
                             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 50%)' }}>
                             <div className="text-white text-xs font-semibold truncate mb-1">{photo.title}</div>
-                            <button
-                                onClick={() => setAsLogo(photo.url)}
+                            <button onClick={() => setAsLogo(photo.url)}
                                 className="w-full py-1.5 text-xs rounded-lg text-white font-semibold"
                                 style={{ background: 'linear-gradient(135deg, #00bbc4, #006b71)' }}>
                                 🔵 Set as Logo
                             </button>
-                            <button
-                                onClick={() => setAsHero(photo.url)}
+                            <button onClick={() => setAsHero(photo.url)}
                                 className="w-full py-1.5 text-xs rounded-lg text-white font-semibold"
                                 style={{ background: 'linear-gradient(135deg, #9C27B0, #673AB7)' }}>
                                 🖼️ Set as Hero BG
@@ -130,7 +140,6 @@ export default function GalleryManager() {
                         </div>
                     </div>
                 ))}
-
                 {gallery.length === 0 && (
                     <div className="col-span-full text-center py-16 opacity-50">
                         <div className="text-5xl mb-3">📷</div>

@@ -9,7 +9,8 @@ import OpenStatus from '../components/OpenStatus';
 import QRCodeSection from '../components/QRCodeSection';
 import ImageSlider, { FoodImageStrip } from '../components/ImageSlider';
 import { StarDisplay, StarInput } from '../components/StarRating';
-import { getAll, insert, getSingle, TABLES, trackPageView } from '../db/database';
+import { insert, TABLES, trackPageView } from '../db/database';
+import { useRecord, useTable } from '../db/hooks';
 
 // Fallback hotel photos (used when no photos uploaded via Gallery Manager)
 const HOTEL_PHOTOS = [
@@ -42,21 +43,57 @@ function HeroBackground({ images }) {
     );
 }
 
+function DeliverySection() {
+    const delivery = useRecord(TABLES.DELIVERY_SETTINGS) || {};
+    return (
+        <div className="peacock-card rounded-2xl p-6">
+            <h2 className="text-2xl font-bold mb-4 text-center" style={{ color: '#00bbc4' }}>🚚 Food Delivery for Events</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div className="p-4 rounded-xl" style={{ background: 'rgba(0,107,113,0.3)' }}>
+                    <div className="text-3xl mb-2">📍</div>
+                    <div className="font-bold" style={{ color: '#FFD700' }}>{delivery.maxDistance || 5} km</div>
+                    <div className="text-sm opacity-70">Delivery Radius</div>
+                </div>
+                <div className="p-4 rounded-xl" style={{ background: 'rgba(0,107,113,0.3)' }}>
+                    <div className="text-3xl mb-2">💰</div>
+                    <div className="font-bold" style={{ color: '#FFD700' }}>₹{delivery.fee || 30}</div>
+                    <div className="text-sm opacity-70">Delivery Fee</div>
+                </div>
+                <div className="p-4 rounded-xl" style={{ background: 'rgba(0,107,113,0.3)' }}>
+                    <div className="text-3xl mb-2">🛒</div>
+                    <div className="font-bold" style={{ color: '#FFD700' }}>₹{delivery.minOrder || 150}</div>
+                    <div className="text-sm opacity-70">Minimum Order</div>
+                </div>
+            </div>
+            <p className="text-center text-sm opacity-60 mt-4">
+                {delivery.note || 'Food delivery available for functions & events only. Contact us for catering bookings.'}
+            </p>
+            <div className="flex justify-center mt-4">
+                <Link to="/functions" className="px-6 py-3 rounded-xl font-bold text-white" style={{ background: 'linear-gradient(135deg, #00bbc4, #006b71)' }}>
+                    Book a Function
+                </Link>
+            </div>
+        </div>
+    );
+}
+
 export default function HomePage() {
 
     const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, comment: '' });
     const [submitted, setSubmitted] = useState(false);
-    const [reviews, setReviews] = useState([]);
-    const [galleryImages, setGalleryImages] = useState([]);
-    const [menuItems, setMenuItems] = useState([]);
-    const content = getSingle(TABLES.SITE_CONTENT) || {};
+
+    // Reactive Hooks for Live Pulse
+    const allReviews = useTable(TABLES.REVIEWS);
+    const galleryItems = useTable(TABLES.GALLERY);
+    const menuItemsData = useTable(TABLES.MENU);
+    const content = useRecord(TABLES.SITE_CONTENT) || {};
+
+    const reviews = allReviews.filter(r => r.approved);
+    const galleryImages = galleryItems.length > 0 ? galleryItems : HOTEL_PHOTOS;
+    const menuItems = menuItemsData.filter(i => i.available);
 
     useEffect(() => {
         trackPageView('home');
-        setReviews(getAll(TABLES.REVIEWS).filter(r => r.approved));
-        const dbGallery = getAll(TABLES.GALLERY);
-        setGalleryImages(dbGallery.length > 0 ? dbGallery : HOTEL_PHOTOS);
-        setMenuItems(getAll(TABLES.MENU).filter(i => i.available));
         document.title = 'Hotel Chandamama - Vinukonda | Best Restaurant & Cafe';
     }, []);
 
@@ -209,39 +246,7 @@ export default function HomePage() {
 
             {/* Delivery Info */}
             <section className="py-12 px-4 max-w-7xl mx-auto">
-                {(() => {
-                    const delivery = getSingle(TABLES.DELIVERY_SETTINGS) || {};
-                    return (
-                        <div className="peacock-card rounded-2xl p-6">
-                            <h2 className="text-2xl font-bold mb-4 text-center" style={{ color: '#00bbc4' }}>🚚 Food Delivery for Events</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                                <div className="p-4 rounded-xl" style={{ background: 'rgba(0,107,113,0.3)' }}>
-                                    <div className="text-3xl mb-2">📍</div>
-                                    <div className="font-bold" style={{ color: '#FFD700' }}>{delivery.maxDistance || 5} km</div>
-                                    <div className="text-sm opacity-70">Delivery Radius</div>
-                                </div>
-                                <div className="p-4 rounded-xl" style={{ background: 'rgba(0,107,113,0.3)' }}>
-                                    <div className="text-3xl mb-2">💰</div>
-                                    <div className="font-bold" style={{ color: '#FFD700' }}>₹{delivery.fee || 30}</div>
-                                    <div className="text-sm opacity-70">Delivery Fee</div>
-                                </div>
-                                <div className="p-4 rounded-xl" style={{ background: 'rgba(0,107,113,0.3)' }}>
-                                    <div className="text-3xl mb-2">🛒</div>
-                                    <div className="font-bold" style={{ color: '#FFD700' }}>₹{delivery.minOrder || 150}</div>
-                                    <div className="text-sm opacity-70">Minimum Order</div>
-                                </div>
-                            </div>
-                            <p className="text-center text-sm opacity-60 mt-4">
-                                {delivery.note || 'Food delivery available for functions & events only. Contact us for catering bookings.'}
-                            </p>
-                            <div className="flex justify-center mt-4">
-                                <Link to="/functions" className="px-6 py-3 rounded-xl font-bold text-white" style={{ background: 'linear-gradient(135deg, #00bbc4, #006b71)' }}>
-                                    Book a Function
-                                </Link>
-                            </div>
-                        </div>
-                    );
-                })()}
+                <DeliverySection />
             </section>
 
             {/* Gallery Section */}

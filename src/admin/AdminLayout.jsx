@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { adminLogout } from '../db/database';
+import { adminLogout, syncAllToCloud } from '../db/database';
+import { firebaseService } from '../db/firebaseService';
 import {
     LayoutDashboard, UtensilsCrossed, ShoppingBag, CalendarDays, Images,
     Star, QrCode, MessageSquare, Settings, BarChart2, Bot, Package,
-    Tag, Bell, Database, Truck, Download, LogOut, Menu, X, ChevronRight
+    Tag, Bell, Database, Truck, Download, LogOut, Menu, X, ChevronRight, RefreshCw
 } from 'lucide-react';
 
 // Import all admin sections
@@ -49,7 +50,7 @@ const NAV_ITEMS = [
 export default function AdminLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const location = useLocation();
-    const navigate = useNavigate();
+    const [syncing, setSyncing] = useState(false);
 
     const handleLogout = () => {
         adminLogout();
@@ -120,8 +121,45 @@ export default function AdminLayout() {
                     <div className="text-sm font-semibold" style={{ color: '#00bbc4' }}>
                         {NAV_ITEMS.find(n => n.to === location.pathname)?.label || 'Admin'}
                     </div>
-                    <div className="ml-auto flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg, #00bbc4, #006b71)' }}>A</div>
+                    <div className="ml-auto flex items-center gap-3">
+                        <button
+                            onClick={async () => {
+                                setSyncing(true);
+                                try {
+                                    const result = await syncAllToCloud(firebaseService);
+                                    setSyncing(false);
+                                    // Show success briefly
+                                    const btn = document.getElementById('sync-btn');
+                                    if (btn) {
+                                        btn.textContent = `✓ Synced ${result?.pushed?.length || 0} tables`;
+                                        btn.style.color = '#00c851';
+                                        setTimeout(() => {
+                                            btn.textContent = '☁ Push to Cloud (Sync Mobile)';
+                                            btn.style.color = '#00bbc4';
+                                        }, 3000);
+                                    }
+                                } catch {
+                                    setSyncing(false);
+                                    const btn = document.getElementById('sync-btn');
+                                    if (btn) {
+                                        btn.textContent = '✗ Sync Failed - Check Firebase';
+                                        btn.style.color = '#ff4444';
+                                        setTimeout(() => {
+                                            btn.textContent = '☁ Push to Cloud (Sync Mobile)';
+                                            btn.style.color = '#00bbc4';
+                                        }, 4000);
+                                    }
+                                }
+                            }}
+                            id="sync-btn"
+                            disabled={syncing}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${syncing ? 'opacity-50' : 'hover:scale-105'}`}
+                            style={{ background: 'rgba(0,187,196,0.15)', border: '1px solid rgba(0,187,196,0.3)', color: '#00bbc4', minWidth: '180px', justifyContent: 'center' }}
+                        >
+                            <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+                            {syncing ? 'Syncing... (up to 8s)' : '☁ Push to Cloud (Sync Mobile)'}
+                        </button>
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg" style={{ background: 'linear-gradient(135deg, #00bbc4, #006b71)' }}>A</div>
                         <span className="text-xs opacity-60 hidden sm:block">Admin</span>
                     </div>
                 </div>

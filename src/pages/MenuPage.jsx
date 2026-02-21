@@ -6,7 +6,8 @@ import FloatingButtons from '../components/FloatingButtons';
 import ChatBot from '../components/ChatBot';
 import MenuItemCard from '../components/MenuItemCard';
 import { FoodImageStrip } from '../components/ImageSlider';
-import { getAll, TABLES, trackPageView } from '../db/database';
+import { TABLES, trackPageView } from '../db/database';
+import { useTable } from '../db/hooks';
 
 const CATEGORIES = [
     { key: 'all', label: 'All', labelTE: 'అన్నీ', emoji: '🍽️' },
@@ -19,7 +20,7 @@ const CATEGORIES = [
 ];
 
 export default function MenuPage() {
-    const [items, setItems] = useState([]);
+    const items = useTable(TABLES.MENU);
     const [category, setCategory] = useState('all');
     const [search, setSearch] = useState('');
     const [maxPrice, setMaxPrice] = useState(500);
@@ -28,7 +29,6 @@ export default function MenuPage() {
 
     useEffect(() => {
         trackPageView('menu');
-        setItems(getAll(TABLES.MENU));
         document.title = 'Menu – Hotel Chandamama Vinukonda';
     }, []);
 
