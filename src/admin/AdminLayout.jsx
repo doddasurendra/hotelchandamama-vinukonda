@@ -50,7 +50,10 @@ const NAV_ITEMS = [
 export default function AdminLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
     const [syncing, setSyncing] = useState(false);
+    const [syncStatus, setSyncStatus] = useState('idle'); // idle | syncing | success | error
+    const [syncCount, setSyncCount] = useState(0);
 
     const handleLogout = () => {
         adminLogout();
@@ -125,39 +128,34 @@ export default function AdminLayout() {
                         <button
                             onClick={async () => {
                                 setSyncing(true);
+                                setSyncStatus('syncing');
                                 try {
                                     const result = await syncAllToCloud(firebaseService);
-                                    setSyncing(false);
-                                    // Show success briefly
-                                    const btn = document.getElementById('sync-btn');
-                                    if (btn) {
-                                        btn.textContent = `✓ Synced ${result?.pushed?.length || 0} tables`;
-                                        btn.style.color = '#00c851';
-                                        setTimeout(() => {
-                                            btn.textContent = '☁ Push to Cloud (Sync Mobile)';
-                                            btn.style.color = '#00bbc4';
-                                        }, 3000);
-                                    }
+                                    setSyncCount(result?.pushed?.length || 0);
+                                    setSyncStatus('success');
+                                    setTimeout(() => setSyncStatus('idle'), 3000);
                                 } catch {
+                                    setSyncStatus('error');
+                                    setTimeout(() => setSyncStatus('idle'), 4000);
+                                } finally {
                                     setSyncing(false);
-                                    const btn = document.getElementById('sync-btn');
-                                    if (btn) {
-                                        btn.textContent = '✗ Sync Failed - Check Firebase';
-                                        btn.style.color = '#ff4444';
-                                        setTimeout(() => {
-                                            btn.textContent = '☁ Push to Cloud (Sync Mobile)';
-                                            btn.style.color = '#00bbc4';
-                                        }, 4000);
-                                    }
                                 }
                             }}
-                            id="sync-btn"
                             disabled={syncing}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${syncing ? 'opacity-50' : 'hover:scale-105'}`}
-                            style={{ background: 'rgba(0,187,196,0.15)', border: '1px solid rgba(0,187,196,0.3)', color: '#00bbc4', minWidth: '180px', justifyContent: 'center' }}
+                            style={{
+                                background: 'rgba(0,187,196,0.15)',
+                                border: '1px solid rgba(0,187,196,0.3)',
+                                color: syncStatus === 'success' ? '#00c851' : syncStatus === 'error' ? '#ff4444' : '#00bbc4',
+                                minWidth: '190px',
+                                justifyContent: 'center'
+                            }}
                         >
                             <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
-                            {syncing ? 'Syncing... (up to 8s)' : '☁ Push to Cloud (Sync Mobile)'}
+                            {syncStatus === 'syncing' && 'Syncing...'}
+                            {syncStatus === 'success' && `✓ Synced ${syncCount} tables`}
+                            {syncStatus === 'error' && '✗ Sync Failed'}
+                            {syncStatus === 'idle' && '☁ Push to Cloud (Sync Mobile)'}
                         </button>
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg" style={{ background: 'linear-gradient(135deg, #00bbc4, #006b71)' }}>A</div>
                         <span className="text-xs opacity-60 hidden sm:block">Admin</span>
