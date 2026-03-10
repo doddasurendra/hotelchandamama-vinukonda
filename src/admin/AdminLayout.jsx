@@ -10,7 +10,6 @@ import {
 
 // Import all admin sections
 import DashboardHome from './sections/DashboardHome';
-import Overview from './sections/Overview';
 import CloudData from './sections/CloudData';
 import MenuManager from './sections/MenuManager';
 import OrdersManager from './sections/OrdersManager';
@@ -31,7 +30,6 @@ import ExcelExport from './sections/ExcelExport';
 
 const NAV_ITEMS = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/admin/overview', icon: LayoutDashboard, label: 'Overview' },
     { to: '/admin/cloud-data', icon: Database, label: 'Cloud Data' },
     { to: '/admin/menu', icon: UtensilsCrossed, label: 'Menu Manager' },
     { to: '/admin/orders', icon: ShoppingBag, label: 'Orders' },
@@ -129,10 +127,6 @@ export default function AdminLayout() {
                         {NAV_ITEMS.find(n => n.to === location.pathname)?.label || 'Admin'}
                     </div>
                     <div className="ml-auto flex items-center gap-3">
-                        <Link to="/admin/overview" className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all hover:bg-peacock-900/40" style={{ borderColor: 'rgba(0,187,196,0.3)', color: '#00bbc4' }}>
-                            <LayoutDashboard size={14} />
-                            Overview
-                        </Link>
                         <Link to="/admin/cloud-data" className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all hover:bg-peacock-900/40" style={{ borderColor: 'rgba(0,187,196,0.3)', color: '#00bbc4' }}>
                             <Database size={14} />
                             Cloud Data
@@ -179,7 +173,6 @@ export default function AdminLayout() {
                     <Routes>
                         <Route index element={<Navigate to="/admin/dashboard" replace />} />
                         <Route path="dashboard" element={<DashboardHome />} />
-                        <Route path="overview" element={<Overview />} />
                         <Route path="cloud-data" element={<CloudData />} />
                         <Route path="menu" element={<MenuManager />} />
                         <Route path="orders" element={<OrdersManager />} />

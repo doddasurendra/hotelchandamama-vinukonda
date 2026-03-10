@@ -19,6 +19,7 @@ export const TABLES = {
     CHATBOT: 'hc_chatbot',
     NOTIFICATIONS: 'hc_notifications',
     ADMIN_SESSION: 'hc_admin_session',
+    ACTIVITY_LOGS: 'hc_logs',
 };
 
 // Event system for reactivity
@@ -32,7 +33,27 @@ function notifyUpdate(table, data) {
     listeners.forEach(cb => { try { cb(table, data); } catch { } });
     try {
         window.dispatchEvent(new CustomEvent('hc_data_changed', { detail: table }));
+        // Log the activity if it's not a log itself
+        if (table !== TABLES.ACTIVITY_LOGS && table !== TABLES.ADMIN_SESSION && table !== TABLES.ANALYTICS) {
+            // throttled logging happens in the specific functions below
+        }
     } catch { }
+}
+
+export function addLog(action, detail, table = 'system') {
+    try {
+        const logs = getAll(TABLES.ACTIVITY_LOGS) || [];
+        const newLog = {
+            id: Date.now().toString(36),
+            action,
+            detail,
+            table,
+            createdAt: new Date().toISOString()
+        };
+        logs.unshift(newLog); // Newest first
+        localStorage.setItem(TABLES.ACTIVITY_LOGS, JSON.stringify(logs.slice(0, 100))); // Keep last 100
+        notifyUpdate(TABLES.ACTIVITY_LOGS, logs);
+    } catch (e) { console.error('addLog error:', e); }
 }
 
 export function getAll(table) {
@@ -72,6 +93,7 @@ export function insert(table, record) {
         };
         all.push(newRecord);
         localStorage.setItem(table, JSON.stringify(all));
+        addLog(`Added to ${table}`, record.name || record.title || record.id, table);
         notifyUpdate(table, all);
         return newRecord;
     } catch (e) {
@@ -87,6 +109,7 @@ export function update(table, id, data) {
         if (idx === -1) return null;
         all[idx] = { ...all[idx], ...data, updatedAt: new Date().toISOString() };
         localStorage.setItem(table, JSON.stringify(all));
+        addLog(`Updated in ${table}`, all[idx].name || all[idx].title || id, table);
         notifyUpdate(table, all);
         return all[idx];
     } catch (e) {
@@ -99,6 +122,7 @@ export function remove(table, id) {
     try {
         const all = getAll(table).filter(r => r.id !== id);
         localStorage.setItem(table, JSON.stringify(all));
+        addLog(`Removed from ${table}`, id, table);
         notifyUpdate(table, all);
     } catch (e) {
         console.error('remove error:', e);
